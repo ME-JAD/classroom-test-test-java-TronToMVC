@@ -1,0 +1,104 @@
+name: Autograding Tests
+
+on:
+  - push
+  - workflow_dispatch
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  jad-autograding:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4.5.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate Dependency Tree
+        run: mvn -q dependency:tree -DoutputFile=target/dependency-tree.txt -Daggregate=true
+
+      - name: Generate All classes
+        run: mvn -q compile
+
+      - name: Test if all elements are well placed
+        id: test-well-placed-elements
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test if all elements are well placed
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronClassesTest#doAllTests --file tron-test/pom.xml
+          timeout: 1
+          max-score: 7
+
+      - name: Test tron-controller module
+        id: test-tron-controller
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test tron-controller module
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronControllerTest#doAllTests --file tron-test/pom.xml -DfailIfNoTests=false
+          timeout: 1
+          max-score: 2
+
+      - name: Test tron-model module
+        id: test-tron-model
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test tron-model module
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronModelTest#doAllTests --file tron-test/pom.xml -DfailIfNoTests=false
+          timeout: 1
+          max-score: 2
+
+      - name: Test tron-view module
+        id: test-tron-view
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test tron-view module
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronViewTest#doAllTests --file tron-test/pom.xml -DfailIfNoTests=false
+          timeout: 1
+          max-score: 2
+
+      - name: Test tron-share module
+        id: test-tron-share
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test tron-share module
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronShareTest#doAllTests --file tron-test/pom.xml -DfailIfNoTests=false
+          timeout: 1
+          max-score: 2
+
+      - name: Test tron-main module
+        id: test-tron-main
+        uses: classroom-resources/autograding-command-grader@v1
+        with:
+          test-name: Test tron-main module
+          setup-command: ''
+          command: mvn -B -q -fae test -Dtest=TronMainTest#doAllTests --file tron-test/pom.xml -DfailIfNoTests=false
+          timeout: 1
+          max-score: 5
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          TEST-WELL-PLACED-ELEMENTS_RESULTS: "${{steps.test-well-placed-elements.outputs.result}}"
+          TEST-TRON-CONTROLLER_RESULTS: "${{steps.test-tron-controller.outputs.result}}"
+          TEST-TRON-MODEL_RESULTS: "${{steps.test-tron-model.outputs.result}}"
+          TEST-TRON-VIEW_RESULTS: "${{steps.test-tron-view.outputs.result}}"
+          TEST-TRON-SHARE_RESULTS: "${{steps.test-tron-share.outputs.result}}"
+          TEST-TRON-MAIN_RESULTS: "${{steps.test-tron-main.outputs.result}}"
+
+        with:
+          runners: test-well-placed-elements,test-tron-controller,test-tron-model,test-tron-view,test-tron-share,test-tron-main
